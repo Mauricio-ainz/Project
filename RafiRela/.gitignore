@@ -1,0 +1,14 @@
+node_modules
+.next
+out
+coverage
+.env
+.env.*
+!.env.example
+apps/api/dist
+apps/api/node_modules
+apps/web/.next
+apps/web/node_modules
+Dockerfile.*
+*.log
+.DS_Store

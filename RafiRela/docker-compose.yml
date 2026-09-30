@@ -1,0 +1,48 @@
+version: '3.9'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: rafirela-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: rafirela
+      POSTGRES_USER: rafirela
+      POSTGRES_PASSWORD: rafirela
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  api:
+    build:
+      context: .
+      dockerfile: docker/api/Dockerfile
+    container_name: rafirela-api
+    depends_on:
+      - postgres
+    environment:
+      DATABASE_URL: postgresql://rafirela:rafirela@postgres:5432/rafirela?schema=public
+      JWT_SECRET: change-me-in-production
+      PORT: 3001
+    ports:
+      - '3001:3001'
+    volumes:
+      - .:/app
+
+  web:
+    build:
+      context: .
+      dockerfile: docker/web/Dockerfile
+    container_name: rafirela-web
+    depends_on:
+      - api
+    environment:
+      NEXT_PUBLIC_API_URL: http://api:3001
+    ports:
+      - '3000:3000'
+    volumes:
+      - .:/app
+
+volumes:
+  postgres_data:

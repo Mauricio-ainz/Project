@@ -1,0 +1,187 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  SUPERVISOR
+  OPERATOR
+  AUDITOR
+}
+
+enum ShiftCode {
+  A
+  B
+  C
+  D
+}
+
+enum AuditAction {
+  LOGIN
+  LOGOUT
+  CREATE
+  UPDATE
+  CANCEL
+  DELETE
+  CHANGE_PRODUCT
+  CHANGE_LINE
+  CHANGE_CONFIG
+  CHANGE_SHIFT
+}
+
+model User {
+  id            Int       @id @default(autoincrement())
+  name          String
+  email         String    @unique
+  passwordHash  String    @map("password_hash")
+  role          UserRole
+  active        Boolean   @default(true)
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  createdAuditLogs AuditLog[] @relation("createdByUser")
+  auditLogs        AuditLog[] @relation("auditUser")
+
+  @@map("users")
+}
+
+model Product {
+  id            Int      @id @default(autoincrement())
+  code          String   @unique
+  name          String
+  category      String?
+  packageSize   String?  @map("package_size")
+  unitsPerPallet Int?    @map("units_per_pallet")
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  lineProducts  LineProduct[]
+  productions   Production[]
+
+  @@map("products")
+}
+
+model ProductionLine {
+  id          Int      @id @default(autoincrement())
+  code        String   @unique
+  name        String
+  description String?
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  lineProducts LineProduct[]
+  productions  Production[]
+
+  @@map("production_lines")
+}
+
+model ProductFormat {
+  id        Int      @id @default(autoincrement())
+  name      String
+  volume    String
+  unit      String
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  lineProducts LineProduct[]
+  productions  Production[]
+
+  @@map("product_formats")
+}
+
+model LineProduct {
+  id             Int             @id @default(autoincrement())
+  lineId         Int             @map("line_id")
+  productId      Int             @map("product_id")
+  formatId       Int             @map("format_id")
+  unitsPerPallet Int             @default(0) @map("units_per_pallet")
+  active         Boolean         @default(true)
+  createdAt      DateTime        @default(now()) @map("created_at")
+  updatedAt      DateTime        @updatedAt @map("updated_at")
+
+  line     ProductionLine @relation(fields: [lineId], references: [id])
+  product  Product        @relation(fields: [productId], references: [id])
+  format   ProductFormat  @relation(fields: [formatId], references: [id])
+
+  @@unique([lineId, productId, formatId])
+  @@map("line_products")
+}
+
+model Shift {
+  id        Int       @id @default(autoincrement())
+  code      ShiftCode @unique
+  name      String
+  startTime String    @map("start_time")
+  endTime   String    @map("end_time")
+  active    Boolean   @default(true)
+
+  productions Production[]
+
+  @@map("shifts")
+}
+
+model Group {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String?
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  productions Production[]
+
+  @@map("groups")
+}
+
+model Production {
+  id             Int       @id @default(autoincrement())
+  productionDate DateTime  @map("production_date")
+  lineId         Int       @map("line_id")
+  productId      Int       @map("product_id")
+  formatId       Int       @map("format_id")
+  shiftId        Int       @map("shift_id")
+  groupId        Int?      @map("group_id")
+  operatorId     Int?      @map("operator_id")
+  startTime      String?   @map("start_time")
+  endTime        String?   @map("end_time")
+  pallets        Int       @default(0)
+  unitsPerPallet Int       @default(0) @map("units_per_pallet")
+  totalUnits     Int       @default(0) @map("total_units")
+  observations   String?
+  createdBy      Int?      @map("created_by")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  cancelledAt    DateTime? @map("cancelled_at")
+
+  line    ProductionLine @relation(fields: [lineId], references: [id])
+  product Product        @relation(fields: [productId], references: [id])
+  format  ProductFormat  @relation(fields: [formatId], references: [id])
+  shift   Shift          @relation(fields: [shiftId], references: [id])
+  group   Group?         @relation(fields: [groupId], references: [id])
+
+  @@map("productions")
+}
+
+model AuditLog {
+  id        Int         @id @default(autoincrement())
+  userId    Int?        @map("user_id")
+  action    AuditAction
+  entity    String
+  entityId  Int?        @map("entity_id")
+  oldData   Json?       @map("old_data")
+  newData   Json?       @map("new_data")
+  createdAt DateTime    @default(now()) @map("created_at")
+
+  user User? @relation("auditUser", fields: [userId], references: [id])
+  createdByUser User? @relation("createdByUser", fields: [userId], references: [id])
+
+  @@map("audit_logs")
+}

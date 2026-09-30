@@ -1,0 +1,17 @@
+{
+  "name": "rafirela",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "web:dev": "npm --prefix apps/web run dev",
+    "web:build": "npm --prefix apps/web run build",
+    "web:start": "npm --prefix apps/web run start",
+    "api:dev": "npm --prefix apps/api run start:dev",
+    "api:build": "npm --prefix apps/api run build",
+    "api:start": "npm --prefix apps/api run start:prod",
+    "db:generate": "npm --prefix apps/api exec prisma generate",
+    "db:migrate": "npm --prefix apps/api exec prisma migrate dev --name init",
+    "docker:up": "docker compose up --build",
+    "docker:down": "docker compose down"
+  }
+}
